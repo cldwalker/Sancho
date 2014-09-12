@@ -1,0 +1,2 @@
+{:+ {:app [(:lt.objs.plugins/load-js "inc_clojure_compiled.js")]
+     :inc-clojure.hello [:lt.plugins.inc-clojure/on-close-destroy]}}
