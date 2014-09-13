@@ -4,7 +4,7 @@
             [clojure.string :as s]
             [lt.objs.editor.pool :as pool]
             [lt.plugins.clojure :as clojure]
-            [lt.objs.tabs :as tabs]
+            [lt.objs.files :as files]
             [lt.objs.notifos :as notifos]
             [lt.objs.command :as cmd])
   (:require-macros [lt.macros :refer [defui behavior]]))
@@ -33,6 +33,10 @@
                   :browser.url-bar.focus
                   [:browser.url-bar.navigate! url]
                   :browser.focus-content]))
+
+(defn tempfile [seed suffix]
+  (let [dir (.tmpdir (js/require "os"))]
+    (files/join dir (str seed "-" (js/Date.now) suffix))))
 
 ;; Open pages
 ;; ==========
@@ -103,7 +107,6 @@
                                    (str "(resolve '" (current-word ed) ")")
                                    :open-grimoire)))})
 
-;; (def url "http://grimoire.arrdem.com/1.5.0/clojure.string/blank_QMARK/examples")
 (defn GET [url cb]
   (let [req (.get (js/require "http") url
                   (fn [resp]
@@ -111,40 +114,30 @@
     (.on req "error" (fn [err]
                        (println "Request" url "failed with:" (.-message err))))))
 
-(defui examples-panel [{:keys [body]}]
-  [:pre body])
-
-(behavior ::on-close-destroy
-          :triggers #{:close}
-          :reaction (fn [this]
-                      (object/raise this :destroy)))
-
-(object/object* ::grimoire-examples
-                :tags [:grimoire-examples]
-                :behaviors [::on-close-destroy]
-                :name "Grimoire Examples"
-                :init (fn [this]
-                        (examples-panel (apply hash-map (:args @this)))))
-
 (def ->grimoire-examples-url (comp #(str % "/examples") ->grimoire-url))
 
-(defn ->examples-tab [url]
+(defn fetch-and-open-grimoire-examples* [{:keys [ns var url]}]
   (notifos/working)
   (GET url (fn [body]
-             (tabs/add-or-focus!
-              (object/create ::grimoire-examples :body (str body)))
+             (let [path (tempfile (str ns "-" var) ".clj")]
+               (files/save path body)
+               (cmd/exec! :open-path path))
              (notifos/done-working))))
 
-(def grimoire-examples-tab
-  (partial for-resolved-var (comp ->examples-tab ->grimoire-examples-url)))
+(def fetch-and-open-grimoire-examples
+  (partial for-resolved-var
+           (fn [ns var]
+             (fetch-and-open-grimoire-examples*
+              {:ns ns :var var :url (->grimoire-examples-url ns var)}))))
 
-(cmd/command {:command :inc-clojure.grimoire-examples-tab
-              :desc "IncClojure: Open grimoire examples tab for current symbol"
+(cmd/command {:command :inc-clojure.open-grimoire-examples
+              :desc "IncClojure: Open grimoire examples locally for current symbol"
               :exec (fn []
                       (let [ed (pool/last-active)]
                         (eval-code ed
                                    (str "(resolve '" (current-word ed) ")")
-                                   :grimoire-examples-tab)))})
+                                   :fetch-and-open-grimoire-examples)))})
+
 (comment
   (object/raise editor :editor.eval.clj.result.callback "OK?")
   (-> @editor :client :default deref)
