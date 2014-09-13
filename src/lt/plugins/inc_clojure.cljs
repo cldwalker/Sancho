@@ -64,10 +64,13 @@
 (defn for-resolved-var
   "Performs given action on a stringified, resolved var e.g. #'clojure.core/cond"
   [action {:keys [result]} info]
-  (let [[_ ns var] (re-find #"^#'(\S+)/(\S+)$" result)]
-    (if (and ns var)
-      (action ns var)
-      (notifos/set-msg! (str "Invalid clojure var: " (:symbol info)) {:class "error"}))))
+  (try
+    (let [[_ ns var] (re-find #"^#'(\S+)/(\S+)$" result)]
+      (if (and ns var)
+        (action ns var)
+        (notifos/set-msg! (str "Invalid clojure var: " (:symbol info)) {:class "error"})))
+    (catch js/Error e
+      (notifos/set-msg! (str e) {:class "error"}))))
 
 (def open-crossclj-url (partial for-resolved-var (comp tab-open-url ->crossclj-url)))
 (def open-grimoire-url (partial for-resolved-var (comp tab-open-url ->grimoire-url)))
@@ -75,14 +78,10 @@
 (behavior ::clj-result.callback
           :triggers #{:editor.eval.clj.result.callback}
           :reaction (fn [editor result]
-                      (try
-                        (if-let [callback (some->> (get-in result [:meta :callback])
+                      (if-let [callback (some->> (get-in result [:meta :callback])
                                                  (resolve-fn lt.plugins.inc-clojure))]
                         (callback (-> result :results first) (:meta result))
-                        (notifos/set-msg! (str "No callback provided for clj result: " result) {:class "error"}))
-                        ;; Consider only catching invalid grimoire ns error
-                        (catch js/Error e
-                          (notifos/set-msg! (str e) {:class "error"})))))
+                        (notifos/set-msg! (str "No callback provided for clj result: " result) {:class "error"}))))
 
 (defn eval-code
   "Evals code and returns result with given callback which is a keyword for callback fn.
