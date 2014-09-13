@@ -29,10 +29,9 @@ Sancho's commands can be found in the command bar with the prefix `Sancho: `.
 
 ### Documentation
 
-* `:sancho.open-grimoire-examples`: Open grimoire examples for current symbol in another tab.
-* `:sancho.open-grimoire-url`: Open grimoire url for current symbol.
-* `:sancho.open-crossclj-url`: Open crossclj examples for current symbol.
-
+* `:sancho.open-grimoire-examples`: Open grimoire examples for current symbol in another tab. Grimoire only has examples for clojure.* namespaces.
+* `:sancho.open-grimoire-url`: Open grimoire url for current symbol. Grimoire only has examples for clojure.* namespaces.
+* `:sancho.open-crossclj-url`: Open crossclj examples for current symbol. Crossclj has usages for almost _any_ clojar.
 
 ## Bugs/Issues
 
@@ -46,6 +45,7 @@ Goal is to build a set of useful commands that are missing from the Clojure plug
 
 ## TODO
 * Add a command to view current symbol's source using underline widgets that docs use.
+* Clojurescript support for docs commands
 
 ## License
 See LICENSE.txt
