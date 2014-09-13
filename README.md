@@ -16,6 +16,8 @@
 
 Sancho is your trusty Clojure sidekick for LightTable. Building on top of the [Clojure plugin](https://github.com/LightTable/Clojure), it provides commands to see a current var's usages (via [crossclj](http://crossclj.info/)) or examples (via [grimoire](http://grimoire.arrdem.com/).) More to come.
 
+![Usage Example](example.gif)
+
 ## Install
 
 Install this plugin with LT's plugin manager or clone this project to your LT
