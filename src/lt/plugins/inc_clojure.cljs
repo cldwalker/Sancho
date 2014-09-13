@@ -41,11 +41,11 @@
 ;; from https://github.com/clojure-grimoire/grimoire/blob/cf69630e38f4f9c2c94351d1e8ef1547b61d9567/resources/API.md
 (defn munge-grimoire-var [s]
   (-> s
-      (replace "?" "_QMARK_")
-      (replace "." "_DOT_")
-      (replace "/" "_SLASH_")
-      (replace #"^_*" "")
-      (replace #"_*$" "")))
+      (s/replace "?" "_QMARK_")
+      (s/replace "." "_DOT_")
+      (s/replace "/" "_SLASH_")
+      (s/replace #"^_*" "")
+      (s/replace #"_*$" "")))
 
 (defn ->grimoire-url [ns var]
   ;; Hardcode latest version - not worth calculating version and
