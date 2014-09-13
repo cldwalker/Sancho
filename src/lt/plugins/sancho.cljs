@@ -1,14 +1,11 @@
 (ns lt.plugins.sancho
-  (:require [lt.object :as object]
-            [lt.objs.editor :as ed]
-            [clojure.string :as s]
+  (:require [clojure.string :as s]
             [lt.objs.editor.pool :as pool]
-            [lt.plugins.clojure :as clojure]
             [lt.objs.files :as files]
             [lt.objs.notifos :as notifos]
             [lt.plugins.sancho.util :as util]
-            [lt.objs.command :as cmd])
-  (:require-macros [lt.macros :refer [defui behavior]]))
+            [lt.plugins.sancho.eval :as eval]
+            [lt.objs.command :as cmd]))
 
 ;; Url helpers
 ;; ===========
@@ -36,34 +33,12 @@
 
 (def ->grimoire-examples-url (comp #(str % "/examples") ->grimoire-url))
 
-;; Eval
-;; ====
-
-(behavior ::clj-result.callback
-          :desc "Sancho: Process clojure-evaled code of result-type :callback. Calls
-                 callback defined in [:meta :callback]."
-          :triggers #{:editor.eval.clj.result.callback}
-          :reaction (fn [editor result]
-                      (if-let [callback (some->> (get-in result [:meta :callback])
-                                                 (util/resolve-fn lt.plugins.sancho))]
-                        (callback (-> result :results first) (:meta result))
-                        (notifos/set-msg! (str "No callback provided for clj result: " result) {:class "error"}))))
-
-(defn eval-code
-  "Evals code and returns result with given callback which is a keyword for callback fn.
-  Callbacks can't be a fn since we're sending this over the wire."
-  [editor code meta-init]
-  (let [info (assoc (:info @editor)
-               :code code
-               :meta (assoc meta-init :result-type :callback))]
-    (object/raise clojure/clj-lang :eval! {:origin editor :info info})))
-
 ;; Commands
 ;; ========
 
 (defn for-resolved-var
   "Performs given action on a stringified, resolved var e.g. #'clojure.core/cond"
-  [action {:keys [result]} info]
+  [action info {:keys [result]}]
   (try
     (let [[_ ns var] (re-find #"^#'(\S+)/(\S+)$" result)]
       (if (and ns var)
@@ -72,19 +47,22 @@
     (catch js/Error e
       (notifos/set-msg! (str e) {:class "error"}))))
 
-(def open-crossclj-url (partial for-resolved-var (comp util/tab-open-url ->crossclj-url)))
-(def open-grimoire-url (partial for-resolved-var (comp util/tab-open-url ->grimoire-url)))
+(defmethod eval/handle :open-crossclj-url [info result]
+  (for-resolved-var (comp util/tab-open-url ->crossclj-url) info result))
 
 (defn resolve-current-word-and-call [kw]
   (let [ed (pool/last-active)
         sym (util/current-word ed)]
-    (eval-code ed
+    (eval/eval-code ed
                (str "(resolve '" sym ")")
-               {:callback kw :symbol sym})))
+               {:type kw :symbol sym})))
 
 (cmd/command {:command :sancho.open-crossclj-url
               :desc "Sancho: Open crossclj page for current symbol"
               :exec (partial resolve-current-word-and-call :open-crossclj-url)})
+
+(defmethod eval/handle :open-grimoire-url [info result]
+  (for-resolved-var (comp util/tab-open-url ->grimoire-url) info result))
 
 (cmd/command {:command :sancho.open-grimoire-url
               :desc "Sancho: Open grimoire page for current symbol"
@@ -98,18 +76,13 @@
                     (cmd/exec! :open-path path))
                   (notifos/done-working))))
 
-(def fetch-and-open-grimoire-examples
-  (partial for-resolved-var
+(defmethod eval/handle :fetch-and-open-grimoire-examples [info result]
+  (for-resolved-var
            (fn [ns var]
              (fetch-and-open-grimoire-examples*
-              {:ns ns :var var :url (->grimoire-examples-url ns var)}))))
+              {:ns ns :var var :url (->grimoire-examples-url ns var)}))
+   info result))
 
 (cmd/command {:command :sancho.open-grimoire-examples
               :desc "Sancho: Open grimoire examples locally for current symbol"
               :exec (partial resolve-current-word-and-call :fetch-and-open-grimoire-examples)})
-
-(comment
-  (object/raise editor :editor.eval.clj.result.callback "OK?")
-  (-> @editor :client :default deref)
-  (def editor (first (pool/containing-path "core.clj")))
-  )

@@ -7,12 +7,6 @@
 (defn current-word [ed]
   (:string (clojure/find-symbol-at-cursor ed)))
 
-(defn resolve-fn
-  "Only works when in non-advanced mode e.g. no munging."
-  [ns-obj f]
-  (aget ns-obj
-        (s/replace (name f) "-" "_")))
-
 (defn exec-commands
   "Execs a vec of commands - same format as a user.keymap vec"
   [commands]
