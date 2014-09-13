@@ -1,2 +1,2 @@
-(defproject sancho "0.0.1"
-  :dependencies [[org.clojure/clojure "1.5.1"]])
+(defproject sancho "0.1.0"
+  :dependencies [[org.clojure/clojure "1.6.0"]])

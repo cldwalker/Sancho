@@ -58,7 +58,7 @@
                {:type kw :symbol sym})))
 
 (cmd/command {:command :sancho.open-crossclj-url
-              :desc "Sancho: Open crossclj page for current symbol"
+              :desc "Sancho: Open crossclj usages page for current symbol"
               :exec (partial resolve-current-word-and-call :open-crossclj-url)})
 
 (defmethod eval/handle :open-grimoire-url [info result]
