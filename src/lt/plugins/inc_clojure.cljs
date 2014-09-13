@@ -61,14 +61,16 @@
   ;; determing if grimoire supports it
   (str "http://grimoire.arrdem.com/1.6.0/" ns "/" (munge-grimoire-var var)))
 
-(defn for-resolved-var [action {:keys [result]}]
+(defn for-resolved-var
+  "Performs given action on a stringified, resolved var e.g. #'clojure.core/cond"
+  [action {:keys [result]} info]
   (let [[_ ns var] (re-find #"^#'(\S+)/(\S+)$" result)]
     (if (and ns var)
       (action ns var)
-      (notifos/set-msg! (str "Invalid clojure var: " result) {:class "error"}))))
+      (notifos/set-msg! (str "Invalid clojure var: " (:symbol info)) {:class "error"}))))
 
-(def open-crossclj (partial for-resolved-var (comp tab-open-url ->crossclj-url)))
-(def open-grimoire (partial for-resolved-var (comp tab-open-url ->grimoire-url)))
+(def open-crossclj-url (partial for-resolved-var (comp tab-open-url ->crossclj-url)))
+(def open-grimoire-url (partial for-resolved-var (comp tab-open-url ->grimoire-url)))
 
 (behavior ::clj-result.callback
           :triggers #{:editor.eval.clj.result.callback}
@@ -76,36 +78,35 @@
                       (try
                         (if-let [callback (some->> (get-in result [:meta :callback])
                                                  (resolve-fn lt.plugins.inc-clojure))]
-                        (callback (-> result :results first))
+                        (callback (-> result :results first) (:meta result))
                         (notifos/set-msg! (str "No callback provided for clj result: " result) {:class "error"}))
                         ;; Consider only catching invalid grimoire ns error
                         (catch js/Error e
                           (notifos/set-msg! (str e) {:class "error"})))))
 
 (defn eval-code
-  "Evals code and returns result with given callback which is a keyword for callback fn"
-  [editor code callback-kw]
+  "Evals code and returns result with given callback which is a keyword for callback fn.
+  Callbacks can't be a fn since we're sending this over the wire."
+  [editor code meta-init]
   (let [info (assoc (:info @editor)
                :code code
-               :meta {:callback callback-kw
-                      :result-type :callback})]
+               :meta (assoc meta-init :result-type :callback))]
     (object/raise clojure/clj-lang :eval! {:origin editor :info info})))
+
+(defn resolve-current-word-and-call [kw]
+  (let [ed (pool/last-active)
+        sym (current-word ed)]
+    (eval-code ed
+               (str "(resolve '" sym ")")
+               {:callback kw :symbol sym})))
 
 (cmd/command {:command :inc-clojure.open-crossclj-url
               :desc "IncClojure: Open crossclj page for current symbol"
-              :exec (fn []
-                      (let [ed (pool/last-active)]
-                        (eval-code ed
-                                   (str "(resolve '" (current-word ed) ")")
-                                   :open-crossclj)))})
+              :exec (partial resolve-current-word-and-call :open-crossclj-url)})
 
 (cmd/command {:command :inc-clojure.open-grimoire-url
               :desc "IncClojure: Open grimoire page for current symbol"
-              :exec (fn []
-                      (let [ed (pool/last-active)]
-                        (eval-code ed
-                                   (str "(resolve '" (current-word ed) ")")
-                                   :open-grimoire)))})
+              :exec (partial resolve-current-word-and-call :open-grimoire-url)})
 
 (defn GET [url cb]
   (let [req (.get (js/require "http") url
@@ -132,11 +133,7 @@
 
 (cmd/command {:command :inc-clojure.open-grimoire-examples
               :desc "IncClojure: Open grimoire examples locally for current symbol"
-              :exec (fn []
-                      (let [ed (pool/last-active)]
-                        (eval-code ed
-                                   (str "(resolve '" (current-word ed) ")")
-                                   :fetch-and-open-grimoire-examples)))})
+              :exec (partial resolve-current-word-and-call :fetch-and-open-grimoire-examples)})
 
 (comment
   (object/raise editor :editor.eval.clj.result.callback "OK?")
