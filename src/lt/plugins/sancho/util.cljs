@@ -2,6 +2,7 @@
   (:require [clojure.string :as s]
             [lt.plugins.clojure :as clojure]
             [lt.objs.files :as files]
+            [goog.string]
             [lt.objs.command :as cmd]))
 
 (defn current-word [ed]
@@ -26,8 +27,12 @@
     (files/join dir (str seed "-" (js/Date.now) suffix))))
 
 (defn GET [url cb]
-  (let [req (.get (js/require "http") url
+  (let [body (goog.string.StringBuffer. "")
+        req (.get (js/require "http") url
                   (fn [resp]
-                    (.on resp "data" cb)))]
+                    (.on resp "data" (fn [data]
+                                       (.append body data)))
+                    (.on resp "end" (fn []
+                                      (cb (.toString body))))))]
     (.on req "error" (fn [err]
-                       (println "Request" url "failed with:" (.-message err))))))
+                       (println "Request" url "failed with:" (.-message err))))) )
