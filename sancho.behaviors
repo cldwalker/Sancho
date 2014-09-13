@@ -1,0 +1,2 @@
+{:+ {:app [(:lt.objs.plugins/load-js "sancho_compiled.js")]
+     :editor.clj [:lt.plugins.sancho/clj-result.callback]}}

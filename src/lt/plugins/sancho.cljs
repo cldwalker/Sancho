@@ -1,4 +1,4 @@
-(ns lt.plugins.inc-clojure
+(ns lt.plugins.sancho
   (:require [lt.object :as object]
             [lt.objs.editor :as ed]
             [clojure.string :as s]
@@ -79,7 +79,7 @@
           :triggers #{:editor.eval.clj.result.callback}
           :reaction (fn [editor result]
                       (if-let [callback (some->> (get-in result [:meta :callback])
-                                                 (resolve-fn lt.plugins.inc-clojure))]
+                                                 (resolve-fn lt.plugins.sancho))]
                         (callback (-> result :results first) (:meta result))
                         (notifos/set-msg! (str "No callback provided for clj result: " result) {:class "error"}))))
 
@@ -99,11 +99,11 @@
                (str "(resolve '" sym ")")
                {:callback kw :symbol sym})))
 
-(cmd/command {:command :inc-clojure.open-crossclj-url
+(cmd/command {:command :sancho.open-crossclj-url
               :desc "IncClojure: Open crossclj page for current symbol"
               :exec (partial resolve-current-word-and-call :open-crossclj-url)})
 
-(cmd/command {:command :inc-clojure.open-grimoire-url
+(cmd/command {:command :sancho.open-grimoire-url
               :desc "IncClojure: Open grimoire page for current symbol"
               :exec (partial resolve-current-word-and-call :open-grimoire-url)})
 
@@ -130,7 +130,7 @@
              (fetch-and-open-grimoire-examples*
               {:ns ns :var var :url (->grimoire-examples-url ns var)}))))
 
-(cmd/command {:command :inc-clojure.open-grimoire-examples
+(cmd/command {:command :sancho.open-grimoire-examples
               :desc "IncClojure: Open grimoire examples locally for current symbol"
               :exec (partial resolve-current-word-and-call :fetch-and-open-grimoire-examples)})
 
