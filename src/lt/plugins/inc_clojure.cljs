@@ -4,9 +4,10 @@
             [clojure.string :as s]
             [lt.objs.editor.pool :as pool]
             [lt.plugins.clojure :as clojure]
+            [lt.objs.tabs :as tabs]
             [lt.objs.notifos :as notifos]
             [lt.objs.command :as cmd])
-  (:require-macros [lt.macros :refer [behavior]]))
+  (:require-macros [lt.macros :refer [defui behavior]]))
 
 ;; Util
 ;; ====
@@ -48,26 +49,34 @@
       (s/replace #"_*$" "")))
 
 (defn ->grimoire-url [ns var]
+  ;; Latest supported namespaces: https://github.com/clojure-grimoire/grimoire/blob/master/namespaces
+  (when-not (.startsWith ns "clojure")
+    (throw (ex-info (str ns " is not a valid namespace for grimoire") {})))
+
   ;; Hardcode latest version - not worth calculating version and
   ;; determing if grimoire supports it
   (str "http://grimoire.arrdem.com/1.6.0/" ns "/" (munge-grimoire-var var)))
 
-(defn open-resolved-var [->var-url {:keys [result]}]
+(defn for-resolved-var [action {:keys [result]}]
   (let [[_ ns var] (re-find #"^#'(\S+)/(\S+)$" result)]
     (if (and ns var)
-      (tab-open-url (->var-url ns var))
+      (action ns var)
       (notifos/set-msg! (str "Invalid clojure var: " result) {:class "error"}))))
 
-(def open-crossclj (partial open-resolved-var ->crossclj-url))
-(def open-grimoire (partial open-resolved-var ->grimoire-url))
+(def open-crossclj (partial for-resolved-var (comp tab-open-url ->crossclj-url)))
+(def open-grimoire (partial for-resolved-var (comp tab-open-url ->grimoire-url)))
 
 (behavior ::clj-result.callback
           :triggers #{:editor.eval.clj.result.callback}
           :reaction (fn [editor result]
-                      (if-let [callback (some->> (get-in result [:meta :callback])
+                      (try
+                        (if-let [callback (some->> (get-in result [:meta :callback])
                                                  (resolve-fn lt.plugins.inc-clojure))]
                         (callback (-> result :results first))
-                        (notifos/set-msg! (str "No callback provided for clj result: " result) {:class "error"}))))
+                        (notifos/set-msg! (str "No callback provided for clj result: " result) {:class "error"}))
+                        ;; Consider only catching invalid grimoire ns error
+                        (catch js/Error e
+                          (notifos/set-msg! (str e) {:class "error"})))))
 
 (defn eval-code
   "Evals code and returns result with given callback which is a keyword for callback fn"
@@ -94,8 +103,49 @@
                                    (str "(resolve '" (current-word ed) ")")
                                    :open-grimoire)))})
 
-(comment
+;; (def url "http://grimoire.arrdem.com/1.5.0/clojure.string/blank_QMARK/examples")
+(defn GET [url cb]
+  (let [req (.get (js/require "http") url
+                  (fn [resp]
+                    (.on resp "data" cb)))]
+    (.on req "error" (fn [err]
+                       (println "Request" url "failed with:" (.-message err))))))
 
+(defui examples-panel [{:keys [body]}]
+  [:pre body])
+
+(behavior ::on-close-destroy
+          :triggers #{:close}
+          :reaction (fn [this]
+                      (object/raise this :destroy)))
+
+(object/object* ::grimoire-examples
+                :tags [:grimoire-examples]
+                :behaviors [::on-close-destroy]
+                :name "Grimoire Examples"
+                :init (fn [this]
+                        (examples-panel (apply hash-map (:args @this)))))
+
+(def ->grimoire-examples-url (comp #(str % "/examples") ->grimoire-url))
+
+(defn ->examples-tab [url]
+  (notifos/working)
+  (GET url (fn [body]
+             (tabs/add-or-focus!
+              (object/create ::grimoire-examples :body (str body)))
+             (notifos/done-working))))
+
+(def grimoire-examples-tab
+  (partial for-resolved-var (comp ->examples-tab ->grimoire-examples-url)))
+
+(cmd/command {:command :inc-clojure.grimoire-examples-tab
+              :desc "IncClojure: Open grimoire examples tab for current symbol"
+              :exec (fn []
+                      (let [ed (pool/last-active)]
+                        (eval-code ed
+                                   (str "(resolve '" (current-word ed) ")")
+                                   :grimoire-examples-tab)))})
+(comment
   (object/raise editor :editor.eval.clj.result.callback "OK?")
   (-> @editor :client :default deref)
   (def editor (first (pool/containing-path "core.clj")))
