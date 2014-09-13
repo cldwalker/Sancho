@@ -100,11 +100,11 @@
                {:callback kw :symbol sym})))
 
 (cmd/command {:command :sancho.open-crossclj-url
-              :desc "IncClojure: Open crossclj page for current symbol"
+              :desc "Sancho: Open crossclj page for current symbol"
               :exec (partial resolve-current-word-and-call :open-crossclj-url)})
 
 (cmd/command {:command :sancho.open-grimoire-url
-              :desc "IncClojure: Open grimoire page for current symbol"
+              :desc "Sancho: Open grimoire page for current symbol"
               :exec (partial resolve-current-word-and-call :open-grimoire-url)})
 
 (defn GET [url cb]
@@ -131,7 +131,7 @@
               {:ns ns :var var :url (->grimoire-examples-url ns var)}))))
 
 (cmd/command {:command :sancho.open-grimoire-examples
-              :desc "IncClojure: Open grimoire examples locally for current symbol"
+              :desc "Sancho: Open grimoire examples locally for current symbol"
               :exec (partial resolve-current-word-and-call :fetch-and-open-grimoire-examples)})
 
 (comment
