@@ -14,7 +14,7 @@
 
 ## Description
 
-Sancho is your trusty Clojure sidekick for LightTable. Building on top of the [Clojure plugin](https://github.com/LightTable/Clojure), it currently provides commands to see a current var's usages (via [crossclj](http://crossclj.info/)) or examples (via [grimoire](http://grimoire.arrdem.com/).)
+Sancho is your trusty Clojure(Script) sidekick for LightTable. Building on top of the [Clojure plugin](https://github.com/LightTable/Clojure), it currently provides commands to see a current var's usages (via [crossclj](http://crossclj.info/)) or examples (via [grimoire](http://grimoire.arrdem.com/).)
 
 ![Usage Example](example.gif)
 
@@ -39,13 +39,12 @@ Please report them [on github](http://github.com/cldwalker/Sancho/issues).
 
 ## Contributions
 
-Goal is to build a set of useful commands that enhance the Clojure experience, building on top of the Clojure plugin. Feedback, ideas and contributions welcome.
+Goal is to build a set of useful commands that enhance the Clojure(Script) experience, building on top of the Clojure plugin. Feedback, ideas and contributions welcome.
 
 [See here](http://tagaholic.me/contributing.html) for contributing guidelines.
 
 ## TODO
 * Add a command to view current symbol's source using underline widgets that docs use.
-* Clojurescript support for docs commands
 
 ## License
 See LICENSE.txt
