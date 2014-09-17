@@ -16,6 +16,13 @@
           :reaction (fn [editor result]
                       (handle (:meta result) (-> result :results first))))
 
+(behavior ::cljs-result.callback
+          :desc "Sancho: Process clojurescript-evaled code of result-type :callback. Dispatches
+                 to handle based on [:meta :type]"
+          :triggers #{:editor.eval.cljs.result.callback}
+          :reaction (fn [editor result]
+                      (handle (:meta result) result)))
+
 (defn eval-code
   "Evals code and returns result dispatching to handle fn, based
   on [:meta :type] passed to :eval!."

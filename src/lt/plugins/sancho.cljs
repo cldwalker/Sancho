@@ -40,10 +40,11 @@
   "Performs given action on a stringified, resolved var e.g. #'clojure.core/cond"
   [action info {:keys [result]}]
   (try
-    (let [[_ ns var] (re-find #"^#'(\S+)/(\S+)$" result)]
+    (let [[_ ns var] (re-find #"^(\S+)/(\S+)$" result)]
       (if (and ns var)
         (action ns var)
-        (notifos/set-msg! (str "Invalid clojure var: " (:symbol info)) {:class "error"})))
+        (do (println "Failed eval result:" result)
+          (notifos/set-msg! (str "Invalid clojure var: " (:symbol info)) {:class "error"}))))
     (catch js/Error e
       (notifos/set-msg! (str e) {:class "error"}))))
 
@@ -54,7 +55,7 @@
   (let [ed (pool/last-active)
         sym (util/current-word ed)]
     (eval/eval-code ed
-               (str "(resolve '" sym ")")
+               (str "(identity `" sym ")")
                {:type kw :symbol sym})))
 
 (cmd/command {:command :sancho.open-crossclj-url
