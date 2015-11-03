@@ -13,25 +13,26 @@
 (defn ->crossclj-url [ns var]
   (str "http://crossclj.info/fun/" ns "/" var ".html"))
 
-;; from https://github.com/clojure-grimoire/grimoire/blob/cf69630e38f4f9c2c94351d1e8ef1547b61d9567/resources/API.md
+;; https://github.com/clojure-grimoire/lib-grimoire/blob/fcae113f58bd989d6c7c42378e6fe26e8bbc1da2/src/grimoire/util.clj#L9
 (defn munge-grimoire-var [s]
+  ;; First 3 taken from cemerick.url/url-encode
   (-> s
-      (s/replace "?" "_QMARK_")
-      (s/replace "." "_DOT_")
-      (s/replace "/" "_SLASH_")
-      (s/replace #"^_*" "")
-      (s/replace #"_*$" "")))
+      str
+      js/encodeURIComponent
+      (.replace "+" "%20")
+      (s/replace #"\." "%2E") ;; most applications don't eat the . character happily
+      ))
 
 (defn ->grimoire-url [ns var]
-  ;; Latest supported namespaces: https://github.com/clojure-grimoire/grimoire/blob/master/namespaces
+  ;; curl http://conj.io/api/v2/org.clojure/clojure/1.7.0/clj?op=namespaces
   (when-not (.startsWith ns "clojure")
     (throw (ex-info (str ns " is not a valid namespace for grimoire") {})))
 
   ;; Hardcode latest version - not worth calculating version and
   ;; determing if grimoire supports it
-  (str "http://grimoire.arrdem.com/1.6.0/" ns "/" (munge-grimoire-var var)))
+  (str "http://conj.io/store/v1/org.clojure/clojure/1.7.0/clj/" ns "/" (munge-grimoire-var var)))
 
-(def ->grimoire-examples-url (comp #(str % "/examples") ->grimoire-url))
+(def ->grimoire-examples-url (comp #(str % "?type=text/plain") ->grimoire-url))
 
 ;; Commands
 ;; ========
